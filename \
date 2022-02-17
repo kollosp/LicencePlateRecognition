@@ -10,10 +10,10 @@ start = time.time()
 end = float('inf')
 cam = cv2.VideoCapture(0)
 
-click_param = {
-    'en_contour': True,
-    'en_canny': False
-}
+en_contour = False
+en_canny = False
+
+ccc = 10
 
 WIDTH, HEIGHT = 480, 320
 
@@ -22,18 +22,20 @@ def onclick(event, x, y, flags, param):
         if x < WIDTH/2 and y < HEIGHT/2:
             exit()
         elif x > WIDTH/2 and y < HEIGHT/2:
+            print(ccc)
+            ccc = ccc +1
             pass
             #en_canny = not en_canny
         elif x < WIDTH/2 and y > HEIGHT/2:
             print("contour", WIDTH)
-            param['en_contour'] = not param['en_contour']            
+            en_contour = not en_contour            
         else:
-            param['en_canny'] = not param['en_canny']
+            en_canny = not en_canny
 
   
 
 cv2.namedWindow("test")
-cv2.setMouseCallback("test", onclick, click_param)
+cv2.setMouseCallback("test", onclick)
 cv2.setWindowProperty("test",cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 last_saved_image = None
@@ -46,7 +48,7 @@ fps_time = time.time()
 
 while True:
     ret, original = cam.read()
-    print(click_param)
+
     if not ret:
         print("failed to grab frame")
         break
@@ -76,7 +78,7 @@ while True:
     #show original frame
     mat[:int(frame.shape[1]/2), int(frame.shape[0]/2):int(frame.shape[0])]= frame_resized
     #show canny edges 
-    if click_param['en_canny']:
+    if en_canny:
         mat[int(frame.shape[1]/2):int(frame.shape[1]), :int(frame.shape[0]/2)]= cv2.cvtColor(cv2.Canny(frame_resized,120,200),cv2.COLOR_GRAY2RGB)
 
 
@@ -89,27 +91,24 @@ while True:
     contours_filtered = [x for x in contours if len(x) > 10 and len(x) < 100]    
 
     for index, contour in enumerate(contours_filtered):
+        #print("f", len(contour))
         cv2.drawContours(con_image, [contour], -1, (0,0,random.randint(100,255)),5)
         x,y,w,h = cv2.boundingRect(contour)
         cv2.rectangle(con_image,(x,y),(x+w,y+h),(0,255,0),2)
 
     #print("contours found, ", len(contours))
-    if click_param['en_contour']:
+    if en_contour:
         mat[:int(frame.shape[1]/2), :int(frame.shape[0]/2)] = cv2.resize(con_image, frame_quarter_shape)
     
-    #draw cross to distinguish all quarters
     cv2.line(mat, (int(mat.shape[1]/2), 0),  (int(mat.shape[1]/2), mat.shape[0]), (255,0,0)) 
     cv2.line(mat, (0, int(mat.shape[0]/2)),  (mat.shape[1], int(mat.shape[0]/2)), (255,0,0)) 
     mat_rot =  cv2.rotate(mat, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    
-    #draw fps and contours count
     fps = 1.0 / (time.time() - fps_time)
     fps_time = time.time()
     cv2.putText(mat_rot, "{0:.0f} fps".format(fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,0),4)
     cv2.putText(mat_rot, "{0:.0f} fps".format(fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255),2)
     cv2.putText(mat_rot, "{} con.".format(len(contours)), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,0),4)
     cv2.putText(mat_rot, "{} con.".format(len(contours)), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255),2)
-    #display image
     #cv2.imshow("test",mat)
     #cv2.imshow("test", cv2.rotate(mat, cv2.ROTATE_90_CLOCKWISE))
     cv2.imshow("test",mat_rot)

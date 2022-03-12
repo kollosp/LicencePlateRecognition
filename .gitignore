@@ -1,1 +1,4 @@
-data/*
+*data*
+.idea
+cascade
+plates

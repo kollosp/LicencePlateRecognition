@@ -74,8 +74,6 @@ while True:
    
 
    
-   
-
     #frame = cv2.resize(frame, (int(WIDTH/2),int(HEIGHT/2)))
 
 

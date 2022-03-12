@@ -37,17 +37,22 @@ def val_max(val):
     color_max[2] = val
 def val_min(val):
     color_min[2] = val
+
 ## [main]
 def main():
 
     print("Use:")
-    print(" - 's' to save and image")
-    print(" - 'n' to display next image")
-    print(" - 'p' to display previous  image")
+    print(" - 'n' to save image in negative directory")
+    print(" - 'p' to save image in positive directory")
+    print(" - 's' to skip image")
+    print(" - 'd' to return to previous image")
 
-    dir = '220219_data'
-    save_dir = 'saves'
+    dir = '220308_data/data'
+    save_positive_dir = 'positive'
+    save_negative_dir = 'negatives'
     images = [f for f in listdir(dir) if isfile(join(dir, f))]
+    print("Loaded", len(images), "files")
+
     image_index = 0
 
     src = cv.imread(dir + "/" + images[image_index])
@@ -85,18 +90,28 @@ def main():
         if key == ord('q') or key == 27:
             break
         elif key == ord('n'):
+            cv.imwrite(save_negative_dir + '/' + images[image_index], src)
+            image_index += 1
+            src = cv.imread(dir + "/" + images[image_index])
+            src = cv.rotate(src, cv.cv2.ROTATE_90_COUNTERCLOCKWISE)
+            print("written to negative. image ", image_index, '/', len(images))
+        elif key == ord('p'):
+            cv.imwrite(save_positive_dir + '/' + images[image_index], src)
+            image_index += 1
+            src = cv.imread(dir + "/" + images[image_index])
+            src = cv.rotate(src, cv.cv2.ROTATE_90_COUNTERCLOCKWISE)
+            print("written to positive. image ", image_index, '/', len(images))
+        elif key == ord('s'):
             image_index += 1
             src = cv.imread(dir + "/" + images[image_index])
             src = cv.rotate(src, cv.cv2.ROTATE_90_COUNTERCLOCKWISE)
             print("image ", image_index, '/', len(images))
-        elif key == ord('p'):
+        elif key == ord('d'):
             image_index -= 1
             src = cv.imread(dir + "/" + images[image_index])
             src = cv.rotate(src, cv.cv2.ROTATE_90_COUNTERCLOCKWISE)
             print("image ", image_index, '/', len(images))
-        elif key == ord('s'):
-            cv.imwrite(save_dir + '/' + images[image_index], src)
-            print("image saved in", save_dir + '/' + images[image_index])
+
 
 ## [main]
 if __name__ == "__main__":

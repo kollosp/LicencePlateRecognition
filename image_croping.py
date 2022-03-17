@@ -5,21 +5,8 @@ import argparse
 from os import listdir
 from os.path import isfile, join
 import random
-def vconcat_resize_min(im_list, interpolation=cv.INTER_CUBIC):
-    w_min = min(im.shape[1] for im in im_list)
-    im_list_resize = [cv.resize(im, (w_min, int(im.shape[0] * w_min / im.shape[1])), interpolation=interpolation)
-                      for im in im_list]
-    return cv.vconcat(im_list_resize)
 
-def hconcat_resize_min(im_list, interpolation=cv.INTER_CUBIC):
-    h_min = min(im.shape[0] for im in im_list)
-    im_list_resize = [cv.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
-                      for im in im_list]
-    return cv.hconcat(im_list_resize)
-
-def concat_tile_resize(im_list_2d, interpolation=cv.INTER_CUBIC):
-    im_list_v = [hconcat_resize_min(im_list_h, interpolation=cv.INTER_CUBIC) for im_list_h in im_list_2d]
-    return vconcat_resize_min(im_list_v, interpolation=cv.INTER_CUBIC)
+import Vision
 
 
 color_max = np.array([180,50,140])
@@ -33,20 +20,21 @@ click_param = {
 }
 
 def onclick(event, x, y, flags, param):
-    #left button
-    if  event == cv.EVENT_LBUTTONDOWN:
-        #because images are scaled by 1/2 the real coordinate has to be multiplied by 2
+    # left button
+    if event == cv.EVENT_LBUTTONDOWN:
+
+        # because images are scaled by 1/2 the real coordinate has to be multiplied by 2
         param["boxes"][-1].append([2*x,2*y])
 
-    #middle button
-    if  event == cv.EVENT_MBUTTONDOWN:
+    # middle button
+    if event == cv.EVENT_MBUTTONDOWN:
         param["boxes"].append([])
 
-    #print(param["boxes"])
+    # print(param["boxes"])
 
-## [main]
+
+# [main]
 def main():
-
     dir = 'saves'
     save_dir = 'cropped'
     images = [f for f in listdir(dir) if isfile(join(dir, f))]
@@ -72,9 +60,9 @@ def main():
                 x, y, w, h = cv.boundingRect(contour)
                 cv.rectangle(contours,(x,y),(x+w,y+h),(0,255,0),2)
 
+        img = Vision.concat_tile_resize([[src, contours]])
 
-        img = concat_tile_resize([[src, contours]])
-        #scaling by 1/2
+        # scaling by 1/2
         cv.imshow(window_name,cv.resize(img, (int(img.shape[1]/2), int(img.shape[0]/2))))
 
         key = cv.waitKey(30)

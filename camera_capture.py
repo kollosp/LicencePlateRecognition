@@ -50,6 +50,9 @@ fps_time = time.time()
 img_counter = 0
 
 while True:
+    cascade = cv2.CascadeClassifier()
+    cascade.load(cv2.samples.findFile("haar_cascade/cascade48x24.xml"))
+
     ret, original = cam.read()
     if not ret:
         print("failed to grab frame")
@@ -73,14 +76,21 @@ while True:
         mat[int(frame.shape[1]/2):int(frame.shape[1]), int(frame.shape[0]/2):int(frame.shape[0])] = last_saved_image
    
 
-   
-    #frame = cv2.resize(frame, (int(WIDTH/2),int(HEIGHT/2)))
-
-
     #show original frame
     mat[:int(frame.shape[1]/2), int(frame.shape[0]/2):int(frame.shape[0])]= frame_resized
     #show canny edges 
     if click_param['en_canny']:
+        #haar cascade
+        rects = cascade.detectMultiScale(original)
+
+        for _, rect in enumerate(rects):
+
+            pass
+        #mat[int(frame.shape[1] / 2):int(frame.shape[1]), :int(frame.shape[0] / 2)] =
+
+
+        #simple canny
+        #mat[int(frame.shape[1]/2):int(frame.shape[1]), :int(frame.shape[0]/2)]= cv2.cvtColor(cv2.Canny(frame_resized,120,200),cv2.COLOR_GRAY2RGB)
         mat[int(frame.shape[1]/2):int(frame.shape[1]), :int(frame.shape[0]/2)]= cv2.cvtColor(cv2.Canny(frame_resized,150,200),cv2.COLOR_GRAY2RGB)
 
 

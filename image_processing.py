@@ -22,7 +22,6 @@ class Pipeline:
 
 
 def contour_features_extraction(mat, contour):
-
     x = contour[:, 0, 0]
     y = contour[:, 0, 1]
     x_min = x.min()

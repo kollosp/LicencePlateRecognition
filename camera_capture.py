@@ -45,6 +45,9 @@ print("frame_quarter_shape", frame_quarter_shape)
 fps_time = time.time()
 
 while True:
+    cascade = cv2.CascadeClassifier()
+    cascade.load(cv2.samples.findFile("haar_cascade/cascade48x24.xml"))
+
     ret, original = cam.read()
     print(click_param)
     if not ret:
@@ -67,15 +70,21 @@ while True:
    
     end = time.time()
 
-   
-    #frame = cv2.resize(frame, (int(WIDTH/2),int(HEIGHT/2)))
-
-
     #show original frame
     mat[:int(frame.shape[1]/2), int(frame.shape[0]/2):int(frame.shape[0])]= frame_resized
     #show canny edges 
     if click_param['en_canny']:
-        mat[int(frame.shape[1]/2):int(frame.shape[1]), :int(frame.shape[0]/2)]= cv2.cvtColor(cv2.Canny(frame_resized,120,200),cv2.COLOR_GRAY2RGB)
+        #haar cascade
+        rects = cascade.detectMultiScale(original)
+
+        for _, rect in enumerate(rects):
+
+            pass
+        #mat[int(frame.shape[1] / 2):int(frame.shape[1]), :int(frame.shape[0] / 2)] =
+
+
+        #simple canny
+        #mat[int(frame.shape[1]/2):int(frame.shape[1]), :int(frame.shape[0]/2)]= cv2.cvtColor(cv2.Canny(frame_resized,120,200),cv2.COLOR_GRAY2RGB)
 
 
     #calculate contorus

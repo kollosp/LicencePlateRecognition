@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import time
+from Vision import Vision
 
 from plateFinders.CascadeFinder import CascadeFinder
 from plateFinders.ContourFinder import ContourFinder
@@ -27,6 +28,7 @@ def fit_finder(image_path, rectangles, evaluators):
     colors = [(0,255,0),(0,255,255),(255,0,255),(255,255,0),(0,0,0),(0,0,255)]
 
     image = cv.imread(image_path)
+    image = image[600:-100, :]
     output = image.copy()
 
     for _, rect in enumerate(rectangles):
@@ -38,8 +40,12 @@ def fit_finder(image_path, rectangles, evaluators):
         contours = evaluator.fit(image, rectangles)
         stats[i, 2] = time.time() - start
 
-        for j, step in enumerate(evaluator.image_processing_steps_):
-            cv.imshow("Step " + str(j), step)
+        steps = []
+        for _, image in enumerate(evaluator.image_processing_steps_):
+            steps.append(cv.resize(image, (int(image.shape[1]/2), int(image.shape[0]/2))))
+
+        #cv.imshow("Steps", Vision.hconcat_resize_min(evaluator.image_processing_steps_))
+        cv.imshow("Steps for e: " + str(i), Vision.hconcat_resize_min(steps))
 
 
         for _, contour in enumerate(contours):
@@ -150,6 +156,7 @@ def main():
             rectangles.append([int(s) for s in name[j+2:j+6]])
 
         f,p,t = fit_finder(image_path, rectangles, evaluators)
+        #f,p,t = image_process(image_path, rectangles, evaluators)
         fullness += f
         precision += p
         timer += t
@@ -168,7 +175,7 @@ def main():
         print("avg: fullness {0:.3f}, precision {1:.3f}, time: {2:.2f}s, fps: {3:.0f}".format(fullness[i], precision[i], timer[i],
                                                                                     1.0 / timer[i]))
 
-    print(evaluators[0].export_features("asd"))
+    #print(evaluators[0].export_features("asd"))
 
 ## [main]
 if __name__ == "__main__":

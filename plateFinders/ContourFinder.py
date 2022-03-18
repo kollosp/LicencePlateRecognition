@@ -2,6 +2,22 @@ import cv2
 import numpy as np
 import skimage.filters as filters
 from skimage.morphology import rectangle
+from scipy import ndimage
+import matplotlib.pyplot as plt
+
+def std(array):
+    return array.flatten().std()
+
+
+def max_min(array):
+    return array.flatten().max() - array.flatten().min()
+
+def max(array):
+    return array.flatten().max()
+
+def min(array):
+    return array.flatten().max()
+
 
 class ContourFinder:
     def __init__(self, file=None, canny_1=50, canny_2=200, dilation_kernel_size=1, approximation_d=20):
@@ -19,16 +35,18 @@ class ContourFinder:
             self.load_from_file(self.file)
         pass
 
-    def process2D(self, image, kernel):
-        res = np.zeros((image.shape[0], image.shape[1]))
+    def process_2d(self, image, kernel, funcs):
+        res = np.zeros((len(funcs), image.shape[0], image.shape[1]))
         kernel_y = int(len(kernel) / 2)
         kernel_x = int(len(kernel[0]) / 2)
         image_y = len(image)
         image_x = len(image[0])
         for i in range(kernel_x, image_x - kernel_x):
             for j in range(kernel_y, image_y - kernel_y):
-                s = image[j-kernel_y:j+kernel_y, i-kernel_x:i+kernel_x, :]
-                res[j, i] = s.std().flatten().sum()
+                for k, func in enumerate(funcs):
+                    #s = image[j-kernel_y:j+kernel_y, i-kernel_x:i+kernel_x, :]
+                    s = image[j-kernel_y:j+kernel_y, i-kernel_x:i+kernel_x]
+                    res[k, j, i] = func(s)
         return res
 
     def box_to_contour(self, box):
@@ -137,10 +155,30 @@ class ContourFinder:
 
     def find_contours(self, image):
         self.image_processing_steps_ = []
-        kernel5x5 = np.ones([3,3])
+        kernel5x5 = np.ones([8,8])
         print(kernel5x5)
         out = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        #self.image_processing_steps_.append(out)
+        #out2 = self.process_2d(out, kernel5x5, [std, max_min, max, min])
+        #for i, img in enumerate(out2):
+        #    self.image_processing_steps_.append(img.astype(np.uint8))
+
+        out2 = ndimage.filters.generic_filter(out, np.std, (8,8))
+        self.image_processing_steps_.append(out2)
+        #_, out2 = cv2.threshold(out, out2.flatten().mean(), 255, cv2.THRESH_BINARY)
+
+        flatten = out2.flatten()
+        th_level = (flatten.max()-flatten.min())/3
+        print("image mean:", len(flatten[flatten > 0]))
+        print("image treshold:", th_level)
+        print("image max:", flatten.max())
+        print("image min:", flatten.min())
+
+        #fig, axs = plt.subplots(1, 2, sharey=True, tight_layout=True)
+        #plt.hist(out2.flatten(), bins=255)
+        #plt.show()
+
+        _, out2 = cv2.threshold(out2, th_level, 255, cv2.THRESH_BINARY)
+        self.image_processing_steps_.append(out2)
 
         out = cv2.Canny(out, self.canny_1, self.canny_2)
         self.image_processing_steps_.append(out)
@@ -154,34 +192,19 @@ class ContourFinder:
                                                       (dilation_size, dilation_size)))
 
             self.image_processing_steps_.append(out)
+            out = cv2.bitwise_and(out, out2)
+            self.image_processing_steps_.append(out)
 
-        #kernel = np.full((7, 7), -1) + 4 * cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
-        kernel = np.array([[0,0,0,1,0,0,0],
-                          [0,0,0,1,0,0,0],
-                          [1,1,1,1,1,1,1],
-                          [0,0,0,1,0,0,0],
-                          [0,0,0,1,0,0,0]])
-
-        kernel = np.array([[0, 0, 0, 0, 0, 0, 0],
-                           [-1,-1,-1,-1,-1,-1,-1],
-                           [0, 0, 0, 0, 0, 0, 0],
-                           [1, 1, 1, 1, 1, 1, 1],
-                           [1, 1, 1, 1, 1, 1, 1]])
-
-
-        kernel = np.array([[1, -1, -1, -1],
-                           [1, -1,-1,-1],
-                           [1, -1,-1,-1],
-                           [1, 1, 1, 1]])
-
-
-        print(kernel)
         #out = cv2.morphologyEx(out, cv2.MORPH_OPEN, kernel)
         #out = cv2.filter2D(out, -1, kernel5x5)
 
 
         #self.image_processing_steps_.append(out)
-        contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # for 3.4 opencv version
+        _, contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # for 4.5 opencv version
+        #contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        print(len(contours))
         approx = []
         for i, contour in enumerate(contours):
             #epsilon = 0.1 * cv2.arcLength(contour, True)

@@ -20,20 +20,31 @@ class Vision:
                           for im in im_list]
         return cv.vconcat(im_list_resize)
 
+
+    @staticmethod
+    def intersperse(lst, item):
+        result = [item] * (len(lst) * 2 - 1)
+        result[0::2] = lst
+        return result
+
     @staticmethod
     def hconcat_resize_min(im_list, interpolation=cv.INTER_CUBIC, borders_thickness=0):
-        h_min = min(im.shape[0] for im in im_list)
+        h_min = max(im.shape[0] for im in im_list)
 
         if borders_thickness > 0:
-            print("borders_thickness", borders_thickness)
-            length = len(im_list)
-            for i in range(length-1, 1, 1):
-                print(i)
-                im_list.insert(i, np.array((borders_thickness, h_min)).fill(255))
-        print(h_min)
-        print([(int(1.0 * im.shape[1] * h_min / im.shape[0]), h_min) for im in im_list])
+            splitter = np.ones((borders_thickness, 1), np.uint8)
+            splitter.fill(255)
+
+            im_list = Vision.intersperse(im_list, splitter)
+
+            #print("borders_thickness", borders_thickness)
+            #length = len(im_list)
+            #for i in range(length-1, 1, 1):
+            #    print(i)
+            #    im_list.insert(i, np.array((borders_thickness, h_min)).fill(255))
+
         im_list_resize = [cv.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
-                          for im in im_list]
+                          for im in im_list if (im.shape[1] * h_min / im.shape[0]) > 1]
         return cv.hconcat(im_list_resize)
 
     @staticmethod

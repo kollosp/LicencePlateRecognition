@@ -24,8 +24,8 @@ class OpticalCharacterRecognition:
             #density = rerange(density, (0,255))
             #print(density.shape)
             #print(density.min(), density.max())
-            gaussian =cv2.blur(th, (9,9))
-            #gaussian = cv2.GaussianBlur(th, (9, 9), 0)
+            #gaussian =cv2.blur(th, (9,9))
+            gaussian = cv2.GaussianBlur(th, (9, 9), 0)
             dilation_size = 4
             local_max_limits = cv2.dilate(gaussian,cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * dilation_size + 1, 2 * dilation_size + 1),
                                                                              (dilation_size, dilation_size)))
@@ -60,7 +60,7 @@ class OpticalCharacterRecognition:
 
             if len(signs) > 0:
                 print("signs",len(signs))
-                cv2.imshow("signs" + str(i), Vision.hconcat_resize_min(signs))
+                cv2.imshow("signs" + str(i), Vision.hconcat_resize_min(signs, borders_thickness=1))
                 cv2.imshow("plate" + str(i), Vision.resize(Vision.vconcat_resize_min([gray, th, gaussian, local_max_limits,areas_image, segments]),2))
 
     def extract_features(self, image, box, f_grid=(5,5)):

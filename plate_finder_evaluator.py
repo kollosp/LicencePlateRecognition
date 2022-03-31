@@ -147,7 +147,7 @@ def main():
         lines = file.readlines()
 
     names = [(str.replace('\n', '')).split(' ') for str in lines]
-
+    names = names[18:]
     for i, name in enumerate(names):
         image_path = "/".join([dirname, name[0]])
         plates_count = int(name[1])

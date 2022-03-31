@@ -18,9 +18,11 @@ def max(array):
 def min(array):
     return array.flatten().max()
 
+def density_estimation(binary_image):
+    pass
 
 class ContourFinder:
-    def __init__(self, file=None, canny_1=50, canny_2=200, dilation_kernel_size=1, approximation_d=20):
+    def __init__(self, file=None, canny_1=50, canny_2=200, dilation_kernel_size=None, approximation_d=5):
         self.file = file
         self.canny_1 = canny_1
         self.canny_2 = canny_2
@@ -155,20 +157,36 @@ class ContourFinder:
 
     def find_contours(self, image):
         self.image_processing_steps_ = []
-        kernel5x5 = np.ones([8,8])
-        print(kernel5x5)
-        out = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        #kernel5x5 = np.ones([8,8])
+        #print(kernel5x5)
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        out = gray.copy()
+        kernel = np.array([[0, -1, 0],
+                           [-1, 5, -1],
+                           [0, -1, 0]])
+        out = cv2.filter2D(src=out, ddepth=-1, kernel=kernel)
         #out2 = self.process_2d(out, kernel5x5, [std, max_min, max, min])
         #for i, img in enumerate(out2):
         #    self.image_processing_steps_.append(img.astype(np.uint8))
-
-        out2 = ndimage.filters.generic_filter(out, np.std, (8,8))
+        self.image_processing_steps_.append(out)
+        out2 = 2*ndimage.filters.generic_filter(out, np.std, (8,8))
         self.image_processing_steps_.append(out2)
+        out2 = cv2.GaussianBlur(out2, (5, 5), 0)
+        #out2 = rerange(out2, (0,255))
+        #print(out2)
+        self.image_processing_steps_.append(out2)
+        out2 = ndimage.median_filter(out2, (3, 3))
+        #out2 = rerange(out2, (0,255))
+        #print(out2)
+        self.image_processing_steps_.append(out2)
+        #
+        #self.image_processing_steps_.append(out2)
         #_, out2 = cv2.threshold(out, out2.flatten().mean(), 255, cv2.THRESH_BINARY)
 
         flatten = out2.flatten()
         th_level = (flatten.max()-flatten.min())/3
-        print("image mean:", len(flatten[flatten > 0]))
+        print("image mean:", flatten.mean())
         print("image treshold:", th_level)
         print("image max:", flatten.max())
         print("image min:", flatten.min())
@@ -177,50 +195,66 @@ class ContourFinder:
         #plt.hist(out2.flatten(), bins=255)
         #plt.show()
 
-        _, out2 = cv2.threshold(out2, th_level, 255, cv2.THRESH_BINARY)
-        self.image_processing_steps_.append(out2)
-
-        out = cv2.Canny(out, self.canny_1, self.canny_2)
+        _, out = cv2.threshold(out2, th_level, 255, cv2.THRESH_BINARY)
         self.image_processing_steps_.append(out)
 
+        #sobel1 =    [[-1,-2,-1], [0,0,0],[1,2,0]]
+        #sobel2 =    [[1,0,-1], [2,0,-2],[1,0,-1]]
+
+        #sobel = cv2.filter2D(src=out, ddepth=-1, kernel=kernel)
+        #out = sobel + cv2.filter2D(src=out, ddepth=-1, kernel=kernel)
+
+
+        #self.image_processing_steps_.append(out)
+        #out = 2 * ndimage.filters.generic_filter(out, np.std, (3, 3))
+
+        #self.image_processing_steps_.append(out)
+        #out = ndimage.median_filter(out, size=5)
+
+        #out = cv2.Canny(out, self.canny_1, self.canny_2)
+        #self.image_processing_steps_.append(out)
+
         if self.dilation_kernel_size is not None:
+            erosion_size = 1
             dilation_size = self.dilation_kernel_size
+            out = cv2.erode(out,cv2.getStructuringElement(cv2.MORPH_RECT, (2 * erosion_size + 1, 2 * erosion_size + 1),
+                                                      (erosion_size, erosion_size)))
             out = cv2.dilate(out,cv2.getStructuringElement(cv2.MORPH_RECT, (2 * dilation_size + 1, 2 * dilation_size + 1),
                                                            (dilation_size, dilation_size)))
-            out = cv2.erode(out,
-                            cv2.getStructuringElement(cv2.MORPH_RECT, (2 * dilation_size + 1, 2 * dilation_size + 1),
-                                                      (dilation_size, dilation_size)))
 
             self.image_processing_steps_.append(out)
-            out = cv2.bitwise_and(out, out2)
-            self.image_processing_steps_.append(out)
+            #out = cv2.bitwise_and(out, out2)
+            #self.image_processing_steps_.append(out)
 
         #out = cv2.morphologyEx(out, cv2.MORPH_OPEN, kernel)
         #out = cv2.filter2D(out, -1, kernel5x5)
 
-
         #self.image_processing_steps_.append(out)
         # for 3.4 opencv version
-        _, contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #_, contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         # for 4.5 opencv version
-        #contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         print(len(contours))
         approx = []
         for i, contour in enumerate(contours):
-            #epsilon = 0.1 * cv2.arcLength(contour, True)
-            approx.append(cv2.approxPolyDP(contour, self.approximation_d, True))
+            c = cv2.approxPolyDP(contour, self.approximation_d, True)
+            features = self.contour_features_extraction(image, c)
+            if features["area_box"] > 1000 and features["area_box"] < 10000:
+                approx.append(c)
+
 
         return approx
 
     def detectMultiScale(self, image):
 
-        contours = self.find_contours(image)
-        rects = []
-        for index, contour in enumerate(contours):
-            features = self.contour_features_extraction(image, contour)
+        return self.find_contours(image)
+        #contours = self.find_contours(image)
+        #rects = []
+        #for index, contour in enumerate(contours):
+        #    features = self.contour_features_extraction(image, contour)
 
             #predict features !!!
 
-            rects.append(cv2.boundingRect(contour))
+        #    rects.append(cv2.boundingRect(contour))
 
-        return rects
+        #return rects

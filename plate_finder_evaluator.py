@@ -4,6 +4,7 @@ import time
 from Vision import Vision
 
 from plateFinders.CascadeFinder import CascadeFinder
+from plateFinders.RegionFinder import RegionFinder
 from plateFinders.ContourFinder import ContourFinder
 
 def intersection(a,b):
@@ -19,7 +20,7 @@ def area(rect):
 
 
 
-def fit_finder(image_path, rectangles, evaluators):
+def fit_finder(image_path, rectangles, evaluators, iterator):
 
     #found rects area, intersections area with plates, computation time
     stats = np.zeros([len(evaluators), 3])
@@ -35,17 +36,19 @@ def fit_finder(image_path, rectangles, evaluators):
         cv.rectangle(output, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]), (255,0,0), 1)
         plates_area += area(rect)
 
+    counter = 0
     for i, evaluator in enumerate(evaluators):
         start = time.time()
         contours = evaluator.fit(image, rectangles)
         stats[i, 2] = time.time() - start
 
-        steps = []
-        for _, image in enumerate(evaluator.image_processing_steps_):
-            steps.append(cv.resize(image, (int(image.shape[1]/2), int(image.shape[0]/2))))
+        #steps = []
+        #for _, image in enumerate(evaluator.image_processing_steps_):
+        #    #steps.append(cv.resize(image, (int(image.shape[1]/2), int(image.shape[0]/2))))
+        #    steps.append(image)
 
         #cv.imshow("Steps", Vision.hconcat_resize_min(evaluator.image_processing_steps_))
-        cv.imshow("Steps for e: " + str(i), Vision.hconcat_resize_min(steps))
+        #cv.imshow("Steps for e: " + str(i), Vision.hconcat_resize_min(steps))
 
 
         for _, contour in enumerate(contours):
@@ -53,6 +56,9 @@ def fit_finder(image_path, rectangles, evaluators):
             x, y, w, h = rect
             cv.drawContours(output, [contour], 0, colors[i%len(colors)], 2)
             cv.rectangle(output, (x, y), (x + w, y + h), colors[i%len(colors) +1 ], 2)
+            cv.imwrite("plates2/img_" + str(counter) + "_" + str(iterator) + ".png", image[y:y + h, x:x + w])
+            #cv.imshow("plates2/img_" + str(counter) + "_" + str(iterator) + ".png", image[y:y + h, x:x + w])
+            counter += 1
             stats[i,0] += area(rect)
 
             #measure statistics
@@ -62,7 +68,7 @@ def fit_finder(image_path, rectangles, evaluators):
                     stats[i,1] += area(inter)
                     cv.rectangle(output, (inter[0],inter[1]), (inter[0] + inter[2], inter[1] + inter[3]), (252,157,3), 1)
 
-            cv.rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 3)
+            #cv.rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 3)
 
     fullness = np.zeros(len(evaluators))
     precision = np.zeros(len(evaluators))
@@ -88,7 +94,7 @@ def image_process(image_path, rectangles, evaluators):
 
     image = cv.imread(image_path)
     output = image.copy()
-
+    counter = 0
     for _, rect in enumerate(rectangles):
         cv.rectangle(output, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]), (255,0,0), 2)
         plates_area += area(rect)
@@ -100,6 +106,7 @@ def image_process(image_path, rectangles, evaluators):
 
         for _, rect in enumerate(rects):
             x, y, w, h = rect
+
             cv.rectangle(output, (x, y), (x + w, y + h), colors[i%len(colors)], 2)
             stats[i,0] += area(rect)
 
@@ -110,7 +117,7 @@ def image_process(image_path, rectangles, evaluators):
                     stats[i,1] += area(inter)
                     cv.rectangle(output, (inter[0],inter[1]), (inter[0] + inter[2], inter[1] + inter[3]), (252,157,3), 2)
 
-            cv.rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 2)
+            #cv.rectangle(image, (rect[0], rect[1]), (rect[0] + rect[2], rect[1] + rect[3]), (255, 0, 0), 2)
 
     fullness = np.zeros(len(evaluators))
     precision = np.zeros(len(evaluators))
@@ -134,7 +141,8 @@ def main():
     evaluators = [
     #    CascadeFinder("haar_cascades/cascade1.xml"),
     #    CascadeFinder("haar_cascades/cascade48x24.xml")
-        ContourFinder()
+        RegionFinder()
+    #    ContourFinder()
     ]
 
 
@@ -147,7 +155,7 @@ def main():
         lines = file.readlines()
 
     names = [(str.replace('\n', '')).split(' ') for str in lines]
-    names = names[18:]
+    #names = names[18:]
     for i, name in enumerate(names):
         image_path = "/".join([dirname, name[0]])
         plates_count = int(name[1])
@@ -155,12 +163,12 @@ def main():
         for j in range(plates_count):
             rectangles.append([int(s) for s in name[j+2:j+6]])
 
-        f,p,t = fit_finder(image_path, rectangles, evaluators)
+        f,p,t = fit_finder(image_path, rectangles, evaluators, i)
         #f,p,t = image_process(image_path, rectangles, evaluators)
         fullness += f
         precision += p
         timer += t
-        key = cv.waitKey(0)
+        key = cv.waitKey(1)
 
         if key == 27:
             break

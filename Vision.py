@@ -5,6 +5,14 @@ class Vision:
     def __init__(self):
         pass
 
+
+    @staticmethod
+    def rects(image, rects, color=(255,0,0), tickness=1):
+        img = image.copy()
+        for i, rect in enumerate(rects):
+            cv.rectangle(img, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]),color, tickness)
+        return img
+
     @staticmethod
     def rect(image, rect, color=(255,0,0), tickness=1):
         cv.rectangle(image, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]),color, tickness)

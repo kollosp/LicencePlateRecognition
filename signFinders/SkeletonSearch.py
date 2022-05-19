@@ -4,7 +4,7 @@ from Vision import Vision
 from helpers.Filters import Filters
 from scipy import stats
 from lib.helpers import rerange
-class OpticalCharacterRecognition:
+class SkeletonSearch:
     def __init__(self):
         self.image_processing_steps_ = []
 
@@ -16,7 +16,6 @@ class OpticalCharacterRecognition:
             if kernel < 3: kernel = 3
             elif kernel > 21 : kernel = 21
             if kernel % 2 == 0: kernel = kernel +1
-            print("kernel",kernel)
             th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, kernel, 0)
             element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
 
@@ -40,10 +39,13 @@ class OpticalCharacterRecognition:
             # cv2.imshow("plate" + str(i), Vision.resize(Vision.vconcat_resize_min([gray, '''th, gaussian, local_max_limits,areas_image,''' segments]),2))
             #cv2.imshow("plate" + str(i),Vision.vconcat_resize_min([image, ]))
             #           #Vision.resize(), 1))
-            cv2.imshow("plate" + str(i),Vision.resize(Vision.rects(cv2.cvtColor(skel, cv2.COLOR_GRAY2BGR), rects), 2))
+            #cv2.imshow("plate" + str(i),Vision.resize(Vision.rects(cv2.cvtColor(skel, cv2.COLOR_GRAY2BGR), rects), 2))
 
             #it could be enabled some filtering
-            signs_on_tables.append(rects)
+            rr = []
+            for r in rects:
+                rr.append(r)
+            signs_on_tables.append(rr)
         return signs_on_tables
 
     def predict_old(self, images):

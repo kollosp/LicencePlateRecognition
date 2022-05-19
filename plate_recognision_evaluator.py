@@ -1,10 +1,7 @@
 import cv2 as cv
-import numpy as np
 import time
-from Vision import Vision
-from ocr.OpticalCharacterRecognition import OpticalCharacterRecognition
+from signFinders.SkeletonSearch import SkeletonSearch
 
-from plateFinders.CascadeFinder import CascadeFinder
 from plateFinders.ContourFinder import ContourFinder
 
 def intersection(a,b):
@@ -57,7 +54,7 @@ def image_process(image_path, rectangles, plate_finder, ocr):
 def main():
 
     plate_finder = ContourFinder()
-    ocr = OpticalCharacterRecognition()
+    ocr = SkeletonSearch()
     timer = 0
 
     dirname = "cascade"

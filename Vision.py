@@ -62,3 +62,10 @@ class Vision:
     def concat_tile_resize(im_list_2d, interpolation=cv.INTER_CUBIC, borders_thickness=0):
         im_list_v = [Vision.hconcat_resize_min(im_list_h, interpolation=interpolation,borders_thickness=borders_thickness) for im_list_h in im_list_2d]
         return Vision.vconcat_resize_min(im_list_v, interpolation=interpolation, borders_thickness=borders_thickness)
+
+    @staticmethod
+    def text(image, txt="txt", pos=(0,0)):
+        buf = image.copy()
+        cv.putText(buf, txt, pos, cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 3)
+        cv.putText(buf, txt, pos, cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 1)
+        return buf

@@ -1,16 +1,13 @@
 import cv2
 import numpy as np
-import time
 from Vision import Vision
 from helpers.Filters import Filters
 
 from helpers.PyTorchMLP import PyTorchMLP
 
-from plateFinders.CascadeFinder import CascadeFinder
-from plateFinders.RegionFinder import RegionFinder
-from plateFinders.ContourFinder import ContourFinder
 from plateFinders.mlModel import MlModel
-from ocr.OpticalCharacterRecognition import OpticalCharacterRecognition
+from signFinders.SkeletonSearch import SkeletonSearch
+from ocr.mlOCR import MlOCR
 import torch
 
 
@@ -23,7 +20,8 @@ def intersection(a,b):
     return (x, y, w, h)
 
 def test(model, dirname, names):
-    ocr = OpticalCharacterRecognition()
+    sign_extractor = SkeletonSearch()
+    mlocr = MlOCR(model="Dummy")
 
     plate_found = 0
     found_field = 0
@@ -55,8 +53,19 @@ def test(model, dirname, names):
 
         images_checked += 1
 
-        ocr.predict(Filters.extract_rois(image, rois))
+        signs_list = sign_extractor.predict(Filters.extract_rois(image, rois))
+        signs_flat = []
+        for j, signs in enumerate(signs_list):
+            letters = mlocr.predict(Filters.extract_rois(image,signs))
 
+            display = Vision.text(display, "".join(letters), (rois[j][0], rois[j][1]))
+            for k, sign in enumerate(signs):
+                sign[0] = sign[0] + rois[j][0]
+                sign[1] = sign[1] + rois[j][1]
+                signs_flat.append(sign)
+                display = Vision.text(display, letters[k], (sign[0], sign[1]))
+
+        display = Vision.rects(display, signs_flat, color=(0,0,255),tickness=2)
         cv2.imshow("image", display)
         key = cv2.waitKey(0)
 
@@ -129,7 +138,7 @@ if __name__ == "__main__":
     ]
 
     model = MlModel(PyTorchMLP(
-        path=models[1],
+        path=models[0],
         hidden_layer_sizes=[800, 800, 800, 800, 800, 800],
         hidden_layer_activation=[torch.nn.LeakyReLU(), torch.nn.LeakyReLU(), torch.nn.LeakyReLU(), torch.nn.LeakyReLU(),
                                  torch.nn.LeakyReLU()],

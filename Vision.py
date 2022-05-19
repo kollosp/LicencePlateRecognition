@@ -8,6 +8,9 @@ class Vision:
 
     @staticmethod
     def rects(image, rects, color=(255,0,0), tickness=1):
+        if rects is None:
+            return image
+
         img = image.copy()
         for i, rect in enumerate(rects):
             cv.rectangle(img, (rect[0], rect[1]), (rect[0]+rect[2], rect[1]+rect[3]),color, tickness)

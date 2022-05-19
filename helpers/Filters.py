@@ -53,12 +53,16 @@ class Filters():
         return cv2.bitwise_and(image, image, mask=mask)
 
     @staticmethod
-    def corner_detection_gray(image, k=0.04, element=cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))):
-        dst = cv2.cornerHarris(image, 2, 3, k)
+    def corner_detection_gray(image, k=0.04, blocksize = 2, ksize=3, kernel=5, blur_size=None):
+        dst = cv2.cornerHarris(image, blocksize, ksize, k)
         #dst = cv2.dilate(dst, element)
         dst[dst > 0.001 * dst.max()] = 255
         dst[dst < 255] = 0
-        print(dst.max())
+        element = cv2.getStructuringElement(cv2.MORPH_RECT, (kernel, kernel))
+        dst = cv2.dilate(dst, element).astype(np.uint8)
+
+        if blur_size:
+            dst = cv2.GaussianBlur(dst, blur_size, 0)
         # result is dilated for marking the corners, not important
         return dst
 
@@ -159,9 +163,11 @@ class Filters():
         return res
 
     @staticmethod
-    def edge_filter(image,threshold1=100, threshold2=200):
+    def edge_filter(image,threshold1=100, threshold2=200, dilate_size=5):
         out = cv2.GaussianBlur(image, (5,5), 0)
-        return cv2.Canny(image=out, threshold1=threshold1, threshold2=threshold2)
+        element = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_size, dilate_size))
+        out = cv2.Canny(image=out, threshold1=threshold1, threshold2=threshold2)
+        return cv2.dilate(out, element)
 
     @staticmethod
     def variance_filter(image, element=cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9)), adaptive_range=15):
@@ -197,3 +203,60 @@ class Filters():
     @staticmethod
     def hsv(name):
         return hsv_limits[name]
+
+    @staticmethod
+    def object_detection(image_gray, en_bounding_box=True, approximation_d=20):
+        #edges = cv2.Canny(image_gray, 5, 200)
+        _, edges = cv2.threshold(image_gray,120,255,cv2.THRESH_BINARY)
+        return Filters.object_detection_bin(edges, en_bounding_box=en_bounding_box, approximation_d=approximation_d)
+
+    @staticmethod
+    def object_detection_bin(image_bin, en_bounding_box=True, approximation_d=20):
+        # self.image_processing_steps_.append(out)
+        # for 3.4 opencv version
+        # _, contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # for 4.5 opencv version
+        contours, _ = cv2.findContours(image_bin, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        approx = []
+        for i, contour in enumerate(contours):
+            if en_bounding_box:
+                x,y ,w,h = cv2.boundingRect(contour)
+                approx.append([x,y,w,h])
+            else:
+                c = cv2.approxPolyDP(contour, approximation_d, True)
+                approx.append(c)
+
+        return approx
+
+
+    @staticmethod
+    def extract_rois(image, rois):
+        images = []
+        for r in rois:
+            print(r[0],r[0]+r[2], r[1],r[1]+r[3])
+            images.append(image[r[1]:r[1]+r[3], r[0]:r[0]+r[2]])
+        return images
+
+    @staticmethod
+    def skeleton(image_bin, element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))):
+        th = image_bin.copy()
+
+        size = np.size(th)
+        skel = np.zeros(th.shape, np.uint8)
+
+        j = 0
+        while True:
+            j += 1
+            # Step 2: Open the image
+            open = cv2.morphologyEx(th, cv2.MORPH_OPEN, element)
+            # Step 3: Substract open from the original image
+            temp = cv2.subtract(th, open)
+            # Step 4: Erode the original image and refine the skeleton
+            eroded = cv2.erode(th, element)
+            skel = cv2.bitwise_or(skel, temp)
+            th = eroded.copy()
+            # Step 5: If there are no white pixels left ie.. the image has been completely eroded, quit the loop
+            if cv2.countNonZero(th) == 0 or j == 1000:
+                break
+
+        return skel

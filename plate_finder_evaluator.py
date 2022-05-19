@@ -29,6 +29,7 @@ def fit_finder(image_path, rectangles, evaluators, iterator):
     colors = [(0,255,0),(0,255,255),(255,0,255),(255,255,0),(0,0,0),(0,0,255)]
 
     image = cv.imread(image_path)
+    print(image_path)
     image = image[600:-100, :]
     output = image.copy()
 
@@ -56,7 +57,7 @@ def fit_finder(image_path, rectangles, evaluators, iterator):
             x, y, w, h = rect
             cv.drawContours(output, [contour], 0, colors[i%len(colors)], 2)
             cv.rectangle(output, (x, y), (x + w, y + h), colors[i%len(colors) +1 ], 2)
-            cv.imwrite("plates2/img_" + str(counter) + "_" + str(iterator) + ".png", image[y:y + h, x:x + w])
+            #cv.imwrite("plates2/img_" + str(counter) + "_" + str(iterator) + ".png", image[y:y + h, x:x + w])
             #cv.imshow("plates2/img_" + str(counter) + "_" + str(iterator) + ".png", image[y:y + h, x:x + w])
             counter += 1
             stats[i,0] += area(rect)
@@ -148,14 +149,14 @@ def main():
 
     fullness, precision, timer = [0,0,0]
 
-    dirname = "cascade"
-    positive_file = "pos.txt"
+    dirname = "positive"
+    positive_file = "positive.txt"
     lines = []
     with open("/". join([dirname, positive_file])) as file:
         lines = file.readlines()
 
     names = [(str.replace('\n', '')).split(' ') for str in lines]
-    #names = names[18:]
+    print(names)
     for i, name in enumerate(names):
         image_path = "/".join([dirname, name[0]])
         plates_count = int(name[1])

@@ -47,8 +47,8 @@ def main():
     print(" - 's' to skip image")
     print(" - 'd' to return to previous image")
 
-    dir = '220308_data/data'
-    save_positive_dir = 'positive'
+    dir = 'positive'
+    save_positive_dir = 'ppp'
     save_negative_dir = 'negatives'
     images = [f for f in listdir(dir) if isfile(join(dir, f))]
     print("Loaded", len(images), "files")

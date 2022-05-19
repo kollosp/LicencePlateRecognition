@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from Vision import Vision
+from helpers.Filters import Filters
 from scipy import stats
 from lib.helpers import rerange
 class OpticalCharacterRecognition:
@@ -8,9 +9,48 @@ class OpticalCharacterRecognition:
         self.image_processing_steps_ = []
 
     def predict(self, images):
+        signs_on_tables = []
         for i, image in enumerate(images):
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 7, -2)
+            kernel = int(gray.shape[0] / 2)
+            if kernel < 3: kernel = 3
+            elif kernel > 21 : kernel = 21
+            if kernel % 2 == 0: kernel = kernel +1
+            print("kernel",kernel)
+            th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, kernel, 0)
+            element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+
+
+            skel = Filters.skeleton(th, element=element)
+
+            #_, skel = cv2.threshold(skel,50,255,cv2.THRESH_BINARY)
+            while True:
+                cv2.imshow("e", skel)
+                tmp = skel.copy()
+                skel = cv2.morphologyEx(skel, cv2.MORPH_CLOSE, element)
+                temp = cv2.subtract(skel, tmp)
+                if cv2.countNonZero(temp) == 0:
+                    break
+
+            skel = cv2.morphologyEx(skel, cv2.MORPH_DILATE, element)
+            rects = Filters.object_detection_bin(skel, approximation_d=5)
+
+            # print("signs",len(signs))
+            # cv2.imshow("signs" + str(i), Vision.hconcat_resize_min(signs, borders_thickness=1))
+            # cv2.imshow("plate" + str(i), Vision.resize(Vision.vconcat_resize_min([gray, '''th, gaussian, local_max_limits,areas_image,''' segments]),2))
+            #cv2.imshow("plate" + str(i),Vision.vconcat_resize_min([image, ]))
+            #           #Vision.resize(), 1))
+            cv2.imshow("plate" + str(i),Vision.resize(Vision.rects(cv2.cvtColor(skel, cv2.COLOR_GRAY2BGR), rects), 2))
+
+            #it could be enabled some filtering
+            signs_on_tables.append(rects)
+        return signs_on_tables
+
+    def predict_old(self, images):
+
+        for i, image in enumerate(images):
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 7, 0)
             #dilation_size = 1
             #th = cv2.erode(th,cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * dilation_size + 1, 2 * dilation_size + 1),
             #                                                                 (dilation_size, dilation_size)))
@@ -52,16 +92,17 @@ class OpticalCharacterRecognition:
                     bounding_box = cv2.boundingRect(contour)
                     areas.append(bounding_box)
                     Vision.rect(areas_image, bounding_box,int(j*step) + step)
-                    print(self.extract_features(gray, bounding_box))
+                    #print(self.extract_features(gray, bounding_box))
 
             signs = []
             for j, area in enumerate(areas):
                 signs.append(th[area[1]:area[1]+area[3], area[0]:area[0]+area[2]])
 
             if len(signs) > 0:
-                print("signs",len(signs))
-                cv2.imshow("signs" + str(i), Vision.hconcat_resize_min(signs, borders_thickness=1))
-                cv2.imshow("plate" + str(i), Vision.resize(Vision.vconcat_resize_min([gray, th, gaussian, local_max_limits,areas_image, segments]),2))
+                #print("signs",len(signs))
+                #cv2.imshow("signs" + str(i), Vision.hconcat_resize_min(signs, borders_thickness=1))
+                #cv2.imshow("plate" + str(i), Vision.resize(Vision.vconcat_resize_min([gray, '''th, gaussian, local_max_limits,areas_image,''' segments]),2))
+                cv2.imshow("plate" + str(i), Vision.resize(Vision.vconcat_resize_min([th,local_max_limits, segments]),2))
 
     def extract_features(self, image, box, f_grid=(5,5)):
         f_matrix = np.zeros(f_grid)

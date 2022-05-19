@@ -177,14 +177,15 @@ class RegionFinder:
         element = cv2.getStructuringElement(cv2.MORPH_RECT, (9,9))
 
         var = Filters.variance_filter(image, element)
-        #cv2.imshow("ad", Filters.apply_mask(image, var))
+        cv2.imshow("ad", Filters.apply_mask(image, var))
         #cv2.imshow("edges", Filters.edge_filter(var))
         #cv2.imshow("white", Filters.hsv_range_filter(var, Filters.hsv("white")) + Filters.hsv_range_filter(var, Filters.hsv("black")))
-        corners = Filters.corner_detection_gray(gray, 0.02).astype(np.uint8)
-        mask = Filters.sum_mask([corners,var])
-        #cv2.imshow("corners", Filters.apply_mask(image, mask))
+        corners = Filters.corner_detection_gray(gray, 0.01).astype(np.uint8)
+        #mask = Filters.sum_mask([corners,var])
+        mask = Filters.sum_mask([corners])
+        cv2.imshow("corners", Filters.apply_mask(image, mask))
         rects = Filters.mean_shift_location(mask)
-        #cv2.imshow("objects", Vision.rects(image, rects))
+        cv2.imshow("objects", Vision.rects(image, rects))
 
 
         ret = []

@@ -205,13 +205,13 @@ class Filters():
         return hsv_limits[name]
 
     @staticmethod
-    def object_detection(image_gray, en_bounding_box=True, approximation_d=20):
+    def object_detection(image_gray, en_bounding_box=True, approximation_d=20, min_area = 0):
         #edges = cv2.Canny(image_gray, 5, 200)
         _, edges = cv2.threshold(image_gray,120,255,cv2.THRESH_BINARY)
-        return Filters.object_detection_bin(edges, en_bounding_box=en_bounding_box, approximation_d=approximation_d)
+        return Filters.object_detection_bin(edges, en_bounding_box=en_bounding_box, approximation_d=approximation_d, min_area=min_area)
 
     @staticmethod
-    def object_detection_bin(image_bin, en_bounding_box=True, approximation_d=20):
+    def object_detection_bin(image_bin, en_bounding_box=True, approximation_d=20, min_area = 0):
         # self.image_processing_steps_.append(out)
         # for 3.4 opencv version
         # _, contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -221,7 +221,8 @@ class Filters():
         for i, contour in enumerate(contours):
             if en_bounding_box:
                 x,y ,w,h = cv2.boundingRect(contour)
-                approx.append([x,y,w,h])
+                if w*h > min_area:
+                    approx.append([x,y,w,h])
             else:
                 c = cv2.approxPolyDP(contour, approximation_d, True)
                 approx.append(c)

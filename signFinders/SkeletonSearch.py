@@ -9,22 +9,24 @@ class SkeletonSearch:
         self.image_processing_steps_ = []
 
     def predict(self, images):
+        binary_images = []
         signs_on_tables = []
         for i, image in enumerate(images):
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            kernel = int(gray.shape[0] / 2)
+            kernel = int(image.shape[0] / 2)
             if kernel < 3: kernel = 3
             elif kernel > 21 : kernel = 21
             if kernel % 2 == 0: kernel = kernel +1
+
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             th = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, kernel, 0)
             element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
-
+            binary_images.append(th)
 
             skel = Filters.skeleton(th, element=element)
 
             #_, skel = cv2.threshold(skel,50,255,cv2.THRESH_BINARY)
             while True:
-                cv2.imshow("e", skel)
+                #cv2.imshow("e", skel)
                 tmp = skel.copy()
                 skel = cv2.morphologyEx(skel, cv2.MORPH_CLOSE, element)
                 temp = cv2.subtract(skel, tmp)
@@ -32,7 +34,7 @@ class SkeletonSearch:
                     break
 
             skel = cv2.morphologyEx(skel, cv2.MORPH_DILATE, element)
-            rects = Filters.object_detection_bin(skel, approximation_d=5)
+            rects = Filters.object_detection_bin(skel, approximation_d=5, min_area = 50)
 
             # print("signs",len(signs))
             # cv2.imshow("signs" + str(i), Vision.hconcat_resize_min(signs, borders_thickness=1))
@@ -46,7 +48,7 @@ class SkeletonSearch:
             for r in rects:
                 rr.append(r)
             signs_on_tables.append(rr)
-        return signs_on_tables
+        return signs_on_tables,binary_images
 
     def predict_old(self, images):
 

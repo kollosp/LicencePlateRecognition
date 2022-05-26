@@ -9,6 +9,7 @@ from plateFinders.mlModel import MlModel
 from signFinders.SkeletonSearch import SkeletonSearch
 from ocr.mlOCR import MlOCR
 import torch
+import time
 
 
 def intersection(a,b):
@@ -21,17 +22,20 @@ def intersection(a,b):
 
 def test(model, dirname, names):
     sign_extractor = SkeletonSearch()
-    mlocr = MlOCR(model="Dummy")
-
+    #mlocr = MlOCR(model="Dummy")
+    mlocr = MlOCR.load("ocr_models/1.bin")
+    #mlocr.image_verbose = True
     plate_found = 0
     found_field = 0
     images_checked = 0
+    start_time = time.perf_counter()
     for i, name in enumerate(names):
         image_path = "/".join([dirname, name[0]])
 
         image = cv2.imread(image_path)
         rois = model.predict_rois(image)
-        display = Vision.rects(image, rois, tickness=8)
+        display = image.copy()
+        #display = Vision.rects(image, rois, tickness=4)
 
         plates_count = int(name[1])
         rectangles = []
@@ -53,26 +57,31 @@ def test(model, dirname, names):
 
         images_checked += 1
 
-        signs_list = sign_extractor.predict(Filters.extract_rois(image, rois))
+        signs_list, binary_images = sign_extractor.predict(Filters.extract_rois(image, rois))
         signs_flat = []
-        for j, signs in enumerate(signs_list):
-            letters = mlocr.predict(Filters.extract_rois(image,signs))
 
-            display = Vision.text(display, "".join(letters), (rois[j][0], rois[j][1]))
+
+        for j, signs in enumerate(signs_list):
+            letters = mlocr.predict(Filters.extract_rois(binary_images[j],signs))
+
+            #display = Vision.text(display, "".join(letters), (rois[j][0], rois[j][1]))
             for k, sign in enumerate(signs):
                 sign[0] = sign[0] + rois[j][0]
                 sign[1] = sign[1] + rois[j][1]
                 signs_flat.append(sign)
                 display = Vision.text(display, letters[k], (sign[0], sign[1]))
 
-        display = Vision.rects(display, signs_flat, color=(0,0,255),tickness=2)
+
+        display = Vision.rects(display, signs_flat, color=(0, 0, 255), tickness=1)
         cv2.imshow("image", display)
         key = cv2.waitKey(0)
 
         if key == 27:
            break
 
+    duration = time.perf_counter() - start_time
     print("Found", plate_found, "on", images_checked, "=>", int(100 * plate_found/images_checked), "% avg field", int(100 * found_field/plate_found), "%")
+    print("Duration", duration, "s ->", duration/images_checked, "s per image")
 
 def learn(model, dirname, names):
 
